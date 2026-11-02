@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ai Labs · Capacitación en IA para equipos</title>
+<link rel="icon" href="assets/ailabs-ico.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --night: #0f0d17;
+    --graphite: #16131f;
+    --night-soft: #b7b2c8;
+    --border-dark: #3a3648;
+    --purple: #614afc;
+    --purple-bright: #7462ff;
+    --purple-soft: #8f7dfd;
+    --purple-deep: #3d27c9;
+    --snow: #f5f4f8;
+    --muted-light: #534f66;
+    --display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    --body: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+    --pad: 96px;
+    --ease: cubic-bezier(.16, 1, .3, 1);
+    --s: 1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #050409; height: 100%; }
+  body { font-family: var(--body); color: var(--snow); -webkit-font-smoothing: antialiased; overflow: hidden; }
+
+  /* ================= Stage & transitions ================= */
+  .stage { position: fixed; inset: 0; overflow: hidden; background: #050409; cursor: default; }
+  .frame {
+    position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px;
+    margin: -540px 0 0 -960px; transform: scale(var(--s));
+    opacity: 0; visibility: hidden;
+    transition: opacity .7s ease, visibility 0s linear .7s;
+  }
+  .frame.active { opacity: 1; visibility: visible; z-index: 2; transition: opacity .7s ease .1s, visibility 0s; }
+  .slide {
+    position: relative; width: 1920px; height: 1080px; overflow: hidden;
+    padding: var(--pad); display: flex; flex-direction: column;
+    background: var(--night); color: var(--snow);
+    transition: transform 1.1s var(--ease);
+  }
+  .frame.past .slide { transform: translateX(-5%) scale(.97); }
+  .frame.future .slide { transform: translateX(5%) scale(.97); }
+  .slide.light { background: var(--snow); color: var(--graphite); }
+  .slide.purple { background: var(--purple); color: var(--snow); }
+
+  /* Element entrances */
+  .a { opacity: 0; transform: translateY(34px); transition: opacity .3s ease, transform 0s linear .8s; }
+  .active .a { opacity: 1; transform: none; transition: opacity .9s var(--ease) calc(var(--d) * 1ms), transform 1.1s var(--ease) calc(var(--d) * 1ms); }
+  .a.fade { transform: none; }
+  .a.left { transform: translateX(-50px); }
+  .a.zoom { transform: scale(.92); }
+  .active .a.left, .active .a.zoom { transform: none; }
+
+  .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .14em; margin-bottom: -.14em; }
+  .w > span { display: inline-block; transform: translateY(110%); transition: transform 0s linear .8s; }
+  .active .w > span { transform: none; transition: transform 1s var(--ease) calc(var(--d) * 1ms); }
+
+  .photo { position: relative; overflow: hidden; }
+  .photo img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.14); transition: transform 0s linear .8s; }
+  .active .photo img { transform: scale(1.02); transition: transform 8s var(--ease) .1s; }
+
+  canvas.halftone { position: absolute; pointer-events: none; }
+
+  /* ================= Shared chrome ================= */
+  .top { display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 3; }
+  .logo { height: 44px; display: block; }
+  .meta { font-size: 20px; letter-spacing: .14em; text-transform: uppercase; color: var(--night-soft); }
+  .light .meta { color: var(--muted-light); }
+  .purple .meta { color: rgba(245,244,248,.8); }
+  .foot { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; font-size: 20px; color: var(--night-soft); position: relative; z-index: 3; }
+  .light .foot { color: var(--muted-light); }
+  .purple .foot { color: rgba(245,244,248,.8); }
+  .pg { font-variant-numeric: tabular-nums; letter-spacing: .1em; }
+
+  .content { position: relative; z-index: 2; margin-top: 60px; padding-bottom: 40px; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+  .eyebrow { font-weight: 500; font-size: 24px; letter-spacing: .16em; text-transform: uppercase; color: var(--purple-soft); margin-bottom: 30px; display: flex; align-items: center; gap: 18px; }
+  .eyebrow::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: currentColor; }
+  .light .eyebrow { color: var(--purple); }
+  .purple .eyebrow { color: var(--snow); }
+
+  h1, h2, h3 { font-family: var(--display); font-weight: 700; letter-spacing: -0.035em; line-height: 1.03; }
+  h1 { font-size: 128px; }
+  h2 { font-size: 80px; }
+  h3 { font-size: 38px; letter-spacing: -0.02em; line-height: 1.15; }
+  .accent { color: var(--purple-soft); }
+  .light .accent { color: var(--purple); }
+  p { font-size: 26px; line-height: 1.5; }
+  p.lead { font-size: 34px; line-height: 1.4; color: var(--night-soft); max-width: 1150px; }
+  .light p.lead { color: var(--muted-light); }
+  .purple p.lead { color: rgba(245,244,248,.85); }
+
+  /* ================= 01 Portada ================= */
+  .cover .content { justify-content: flex-end; }
+  .cover h1 { max-width: 1150px; }
+  .cover .lead { margin-top: 40px; max-width: 960px; }
+  .chips { display: flex; gap: 14px; margin-top: 48px; flex-wrap: wrap; }
+  .chip { border: 2px solid var(--border-dark); border-radius: 999px; padding: 14px 26px; font-size: 22px; font-weight: 500; color: var(--snow); background: rgba(22,19,31,.6); }
+  .chip b { color: var(--purple-soft); font-weight: 600; margin-right: 8px; }
+
+  /* ================= 02 Problema ================= */
+  .problems { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-top: auto; }
+  .prob { background: #fff; border: 2px solid rgba(22,19,31,.08); border-radius: 32px; padding: 48px 44px; min-height: 360px; display: flex; flex-direction: column; }
+  .prob .x { width: 64px; height: 64px; border-radius: 50%; background: rgba(97,74,252,.1); color: var(--purple); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 800; font-size: 28px; }
+  .prob h3 { margin: auto 0 16px; font-size: 40px; }
+  .prob p { color: var(--muted-light); font-size: 25px; }
+
+  /* ================= 03 Enfoque ================= */
+  .approach { display: grid; grid-template-columns: 1fr 720px; gap: 96px; flex: 1; min-height: 0; }
+  .approach .photo { border-radius: 36px; height: 100%; }
+  .approach .photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(15,13,23,.75)); }
+  .approach .cap { position: absolute; right: 36px; bottom: 30px; z-index: 2; font-size: 20px; color: var(--snow); letter-spacing: .04em; }
+  .keys { margin-top: auto; display: flex; flex-direction: column; }
+  .key { display: grid; grid-template-columns: 80px 1fr; padding: 28px 0; border-top: 2px solid var(--border-dark); }
+  .key .n { font-family: var(--display); font-weight: 700; font-size: 24px; color: var(--purple-soft); padding-top: 6px; }
+  .key h3 { font-size: 36px; margin-bottom: 8px; }
+  .key p { color: var(--night-soft); font-size: 24px; }
+
+  /* ================= 04 Respaldo ================= */
+  .bleed { position: absolute; inset: 0; z-index: 0; }
+  .bleed::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(15,13,23,.97) 0%, rgba(15,13,23,.9) 42%, rgba(15,13,23,.35) 75%, rgba(97,74,252,.25) 100%); }
+  .proof { margin-top: auto; max-width: 1050px; }
+  .count { font-family: var(--display); font-weight: 800; font-size: 300px; letter-spacing: -0.06em; line-height: .82; color: var(--snow); display: flex; align-items: flex-start; }
+  .count sup { font-size: 140px; color: var(--purple-soft); margin-left: 8px; line-height: 1; }
+  .proof .lead { margin-top: 24px; color: var(--snow); font-size: 38px; }
+  .amb { margin-top: 56px; }
+  .amb .label { font-size: 20px; letter-spacing: .14em; text-transform: uppercase; color: var(--night-soft); margin-bottom: 18px; }
+  .amb-row { display: flex; flex-wrap: wrap; gap: 12px; }
+  .amb-row span { font-family: var(--display); font-weight: 700; font-size: 28px; padding: 14px 26px; border-radius: 16px; background: rgba(245,244,248,.08); border: 1.5px solid rgba(245,244,248,.16); backdrop-filter: blur(6px); }
+  .amb-row span.with { background: var(--purple); border-color: var(--purple); }
+
+  /* ================= 05 Escalera de formatos ================= */
+  .stairs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; margin-top: auto; align-items: end; }
+  .col { display: flex; flex-direction: column; }
+  .col h3 { font-size: 40px; margin-bottom: 12px; }
+  .col p { font-size: 22px; color: var(--muted-light); line-height: 1.45; margin-bottom: 26px; min-height: 96px; }
+  .bar { border-radius: 26px 26px 0 0; padding: 30px 32px; display: flex; flex-direction: column; justify-content: space-between; transform-origin: bottom; transform: scaleY(0); transition: transform 0s linear .8s; }
+  .active .bar { transform: scaleY(1); transition: transform 1.1s var(--ease) calc(var(--d) * 1ms + 150ms); }
+  .bar .dur { font-family: var(--display); font-weight: 800; font-size: 54px; letter-spacing: -0.04em; line-height: 1; }
+  .bar .who { font-size: 20px; letter-spacing: .12em; text-transform: uppercase; opacity: .8; }
+  .col:nth-child(1) .bar { height: 140px; background: #e6e2f5; color: var(--graphite); }
+  .col:nth-child(2) .bar { height: 205px; background: #c4bbfb; color: var(--graphite); }
+  .col:nth-child(3) .bar { height: 270px; background: var(--purple-bright); color: var(--snow); }
+  .col:nth-child(4) .bar { height: 335px; background: var(--graphite); color: var(--snow); }
+  .col:nth-child(4) .bar .dur { color: var(--purple-soft); }
+  .stair-axis { display: flex; justify-content: space-between; border-top: 2px solid rgba(22,19,31,.2); padding-top: 18px; font-size: 20px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted-light); }
+
+  /* ================= 06 Learning Day ================= */
+  .half-photo { position: absolute; left: 0; top: 0; bottom: 0; width: 820px; z-index: 1; }
+  .half-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 60%, var(--night)); }
+  .ld .top, .ld .content, .ld .foot { margin-left: 760px; }
+  .ld .top { justify-content: flex-end; }
+  .ld .logo-l { position: absolute; left: var(--pad); top: var(--pad); z-index: 3; }
+  .badge { display: inline-flex; align-items: baseline; gap: 14px; background: var(--purple); color: var(--snow); border-radius: 999px; padding: 14px 30px; font-family: var(--display); font-weight: 700; font-size: 26px; align-self: flex-start; margin-bottom: 28px; }
+  .ld h2 { font-size: 96px; }
+  .ld .lead { margin-top: 26px; }
+  .ticks { list-style: none; margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 22px 48px; }
+  .ticks li { font-size: 26px; line-height: 1.4; padding-left: 52px; position: relative; }
+  .ticks li::before { content: ""; position: absolute; left: 0; top: 4px; width: 30px; height: 30px; border-radius: 50%; background: var(--purple); }
+  .ticks li::after { content: ""; position: absolute; left: 9px; top: 11px; width: 10px; height: 6px; border-left: 3px solid var(--snow); border-bottom: 3px solid var(--snow); transform: rotate(-45deg); }
+  .light .ticks li::after { border-color: #fff; }
+
+  /* ================= 07 Build Day + Bootcamp ================= */
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; margin-top: auto; }
+  .dcard { border-radius: 36px; padding: 52px; display: flex; flex-direction: column; min-height: 520px; position: relative; overflow: hidden; }
+  .dcard.white { background: #fff; border: 2px solid rgba(22,19,31,.08); }
+  .dcard.dark { background: var(--graphite); color: var(--snow); }
+  .dcard .row { display: flex; justify-content: space-between; align-items: center; }
+  .dcard .tag { font-size: 20px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; color: var(--purple); }
+  .dcard.dark .tag { color: var(--purple-soft); }
+  .dcard .dur { font-family: var(--display); font-weight: 800; font-size: 30px; }
+  .dcard h3 { font-size: 64px; letter-spacing: -0.035em; margin: 36px 0 18px; }
+  .dcard > p { color: var(--muted-light); font-size: 27px; }
+  .dcard.dark > p { color: var(--night-soft); }
+  .flow { margin-top: auto; display: grid; grid-template-columns: 1fr 60px 1fr; align-items: center; gap: 8px; }
+  .flow div { border-radius: 20px; padding: 22px 24px; font-size: 22px; line-height: 1.35; background: var(--snow); }
+  .flow div b { display: block; font-size: 17px; letter-spacing: .14em; text-transform: uppercase; color: var(--purple); margin-bottom: 6px; font-weight: 600; }
+  .dcard.dark .flow div { background: rgba(245,244,248,.07); }
+  .dcard.dark .flow div b { color: var(--purple-soft); }
+  .flow .arr { text-align: center; font-size: 34px; color: var(--purple); background: none !important; padding: 0; }
+  .dcard.dark .flow .arr { color: var(--purple-soft); }
+  .flow div.out { background: var(--purple) !important; color: var(--snow); }
+  .flow div.out b { color: rgba(245,244,248,.8) !important; }
+
+  /* ================= 08 Método ================= */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: auto; position: relative; }
+  .steps::before { content: ""; position: absolute; left: 0; right: 0; top: 46px; height: 2px; background: rgba(245,244,248,.4); transform-origin: left; transform: scaleX(0); transition: transform 0s linear .8s; }
+  .active .steps::before { transform: scaleX(1); transition: transform 1.6s var(--ease) .5s; }
+  .step { padding-right: 70px; position: relative; }
+  .step .dot { width: 94px; height: 94px; border-radius: 50%; background: var(--snow); color: var(--purple); font-family: var(--display); font-weight: 800; font-size: 36px; display: flex; align-items: center; justify-content: center; }
+  .step h3 { font-size: 58px; margin: 44px 0 18px; letter-spacing: -0.03em; }
+  .step p { font-size: 27px; color: rgba(245,244,248,.88); }
+
+  /* ================= 09 Para quién ================= */
+  .who { display: grid; grid-template-columns: 1.35fr 1fr; gap: 36px; margin-top: auto; }
+  .wbox { border-radius: 32px; padding: 50px 52px; }
+  .wbox.yes { background: #fff; border: 2px solid rgba(22,19,31,.08); }
+  .wbox.no { background: transparent; border: 2px dashed rgba(22,19,31,.22); }
+  .wbox h4 { font-family: var(--display); font-size: 30px; font-weight: 700; margin-bottom: 30px; letter-spacing: -0.01em; }
+  .wbox ul { list-style: none; display: flex; flex-direction: column; gap: 22px; }
+  .wbox li { font-size: 27px; line-height: 1.4; padding-left: 52px; position: relative; }
+  .wbox.yes li::before { content: ""; position: absolute; left: 0; top: 4px; width: 30px; height: 30px; border-radius: 50%; background: var(--purple); }
+  .wbox.yes li::after { content: ""; position: absolute; left: 9px; top: 11px; width: 10px; height: 6px; border-left: 3px solid #fff; border-bottom: 3px solid #fff; transform: rotate(-45deg); }
+  .wbox.no li { color: var(--muted-light); }
+  .wbox.no li::before { content: "×"; position: absolute; left: 4px; top: -6px; font-size: 36px; color: var(--muted-light); }
+
+  /* ================= 10 Qué se llevan ================= */
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--border-dark); border: 2px solid var(--border-dark); border-radius: 32px; overflow: hidden; margin-top: auto; }
+  .tile { background: var(--graphite); padding: 42px 40px; min-height: 250px; display: flex; flex-direction: column; }
+  .tile .fm { display: flex; gap: 8px; margin-bottom: auto; flex-wrap: wrap; }
+  .tile .fm span { font-size: 16px; letter-spacing: .1em; text-transform: uppercase; padding: 6px 12px; border-radius: 999px; border: 1.5px solid var(--border-dark); color: var(--night-soft); }
+  .tile h3 { font-size: 34px; margin: 32px 0 10px; }
+  .tile p { font-size: 22px; color: var(--night-soft); line-height: 1.45; }
+  .tile.hl { background: var(--purple); }
+  .tile.hl p, .tile.hl .fm span { color: rgba(245,244,248,.88); border-color: rgba(245,244,248,.4); }
+
+  /* ================= 11 FAQ ================= */
+  .faq { display: grid; grid-template-columns: repeat(3, 1fr); gap: 52px 64px; margin-top: auto; }
+  .q { border-top: 2px solid rgba(22,19,31,.14); padding-top: 30px; }
+  .q h3 { font-size: 33px; margin-bottom: 14px; }
+  .q p { font-size: 23px; color: var(--muted-light); line-height: 1.5; }
+
+  /* ================= 12 CTA ================= */
+  .cta h2 { font-size: 104px; max-width: 1050px; }
+  .cta .lead { margin-top: 32px; max-width: 900px; }
+  .btn { display: inline-flex; align-items: center; gap: 22px; margin-top: 48px; background: var(--purple); color: var(--snow); font-family: var(--display); font-weight: 700; font-size: 34px; padding: 30px 48px; border-radius: 999px; text-decoration: none; align-self: flex-start; position: relative; overflow: hidden; }
+  .btn::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.28) 50%, transparent 70%); transform: translateX(-120%); }
+  .active .btn::after { animation: shine 3.2s ease-in-out 1.8s infinite; }
+  @keyframes shine { 0% { transform: translateX(-120%); } 40%, 100% { transform: translateX(120%); } }
+  .note { margin-top: 40px; font-size: 24px; color: var(--night-soft); max-width: 900px; padding-left: 24px; border-left: 3px solid var(--purple); line-height: 1.45; }
+  .contact { display: flex; gap: 72px; font-size: 22px; color: var(--night-soft); }
+  .contact b { display: block; font-family: var(--display); color: var(--snow); font-size: 28px; margin-top: 6px; font-weight: 600; }
+  .tagline { font-family: var(--display); font-weight: 700; font-size: 26px; color: var(--purple-soft); }
+
+  /* ================= Presenter UI ================= */
+  .ui { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; pointer-events: none; }
+  .progress { height: 4px; background: rgba(255,255,255,.08); }
+  .progress i { display: block; height: 100%; width: 0; background: var(--purple-bright); transition: width .8s var(--ease); }
+  .hud { position: fixed; right: 22px; bottom: 18px; z-index: 20; display: flex; gap: 8px; align-items: center; opacity: 0; transition: opacity .4s; }
+  body.mouse .hud { opacity: 1; }
+  .hud button { pointer-events: auto; width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255,255,255,.18); background: rgba(15,13,23,.75); color: var(--snow); font-size: 18px; cursor: pointer; backdrop-filter: blur(8px); }
+  .hud button:hover { background: var(--purple); border-color: var(--purple); }
+  .hud .num { font: 500 14px var(--body); letter-spacing: .1em; color: #a9a3bf; padding: 0 10px; font-variant-numeric: tabular-nums; }
+  .hint { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); color: #a9a3bf; font: 500 14px var(--body); letter-spacing: .06em; z-index: 20; background: rgba(15,13,23,.85); padding: 10px 18px; border-radius: 999px; transition: opacity .8s; pointer-events: none; }
+  .hint.gone { opacity: 0; }
+
+  /* ================= Print / PDF ================= */
+  body.print { overflow: visible; height: auto; }
+  body.print .stage { position: static; overflow: visible; }
+  body.print .frame { position: relative; left: 0; top: 0; margin: 0; transform: none; opacity: 1; visibility: visible; break-after: page; page-break-after: always; }
+  body.print .slide { transform: none !important; }
+  body.print .a, body.print .w > span, body.print .photo img, body.print .bar, body.print .steps::before { opacity: 1 !important; transform: none !important; transition: none !important; }
+  body.print .ui, body.print .hud, body.print .hint { display: none; }
+  @media print {
+    @page { size: 1920px 1080px; margin: 0; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .a, .w > span, .photo img, .bar, .steps::before, .slide { transition-duration: .01s !important; transition-delay: 0s !important; }
+  }
+</style>
+</head>
+<body>
+<main class="stage" id="stage">
+
+  <!-- 01 Portada -->
+  <section class="frame"><div class="slide cover">
+    <canvas class="halftone" data-mode="cover" data-step="16" style="right:-30px; top:150px; width:800px; height:960px;"></canvas>
+    <div class="top"><img class="logo" src="assets/ailabs-light.svg" alt="Ai Labs" /><span class="meta">Capacitación para equipos</span></div>
+    <div class="content">
+      <div class="eyebrow">Capacitación en IA · El Salvador y Guatemala</div>
+      <h1 class="split">Tu equipo usando IA con criterio. <span class="accent">Desde mañana.</span></h1>
+      <p class="lead">Formación práctica para que gerentes y equipos de ventas, operaciones y administración usen IA sobre su propio trabajo.</p>
+      <div class="chips">
+        <span class="chip"><b>4 h</b>Learning Day</span>
+        <span class="chip"><b>1 día</b>Build Day</span>
+        <span class="chip"><b>2+ días</b>Bootcamp</span>
+        <span class="chip"><b>Abiertos</b>Talleres públicos</span>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- 02 Problema -->
+  <section class="frame"><div class="slide light">
+    <canvas class="halftone" data-mode="chain" data-tone="onlight" data-step="12" style="right:70px; top:170px; width:440px; height:260px;"></canvas>
+    <div class="top"><img class="logo" src="assets/ailabs-dark.svg" alt="Ai Labs" /><span class="meta">El punto de partida</span></div>
+    <div class="content">
+      <div class="eyebrow">El punto de partida</div>
+      <h2 class="split" style="max-width:1400px">Comprar herramientas de IA no cambia <span class="accent">cómo trabaja tu equipo.</span></h2>
+      <div class="problems">
+        <div class="prob"><span class="x">01</span><h3>Licencias que no se aprovechan</h3><p>La empresa ya probó herramientas de IA y el día a día sigue igual.</p></div>
+        <div class="prob"><span class="x">02</span><h3>Cada quien a su manera</h3><p>No hay una base común: unos la usan mucho, otros nada, y nadie comparte lo que funciona.</p></div>
+        <div class="prob"><span class="x">03</span><h3>Sin criterio para revisar</h3><p>No está claro cuándo conviene usarla, cómo revisar el resultado ni qué decisiones no delegar.</p></div>
+      </div>
+    </div>
+    <div class="foot"><span>ailabs.sv</span><span class="pg"></span></div>
+  </div></section>
+
+  <!-- 03 Enfoque -->
+  <section class="frame"><div class="slide">
+    <div class="top"><img class="logo" src="assets/ailabs-light.svg" alt="Ai Labs" /><span class="meta">Nuestro enfoque</span></div>
+    <div class="content">
+      <div class="approach">
+        <div style="display:flex; flex-direction:column">
+          <div class="eyebrow">Nuestro enfoque</div>
+          <h2 class="split">Aprender IA sobre el <span class="accent">trabajo real</span> del equipo.</h2>
+          <div class="keys">
+            <div class="key"><span class="n">01</span><div><h3>Sobre sus tareas, no ejemplos de manual</h3><p>Practican con sus propios casos y ejercicios que repiten al día siguiente.</p></div></div>
+            <div class="key"><span class="n">02</span><div><h3>Con criterio</h3><p>Cuándo usarla, cómo revisar el resultado y cómo operarla con responsabilidad.</p></div></div>
+            <div class="key"><span class="n">03</span><div><h3>Sin programar</h3><p>Pensado para perfiles de negocio, en lenguaje claro.</p></div></div>
+          </div>
+        </div>
+        <div class="photo a zoom"><img src="assets/photos/10-classroom-talk.webp" alt="Sesión práctica de Ai Labs" /><span class="cap">Sesión práctica · Ai Labs</span></div>
+      </div>
+    </div>
+    <div class="foot"><span></span><span class="pg"></span></div>
+  </div></section>
+
+  <!-- 04 Respaldo -->
+  <section class="frame"><div class="slide">
+    <div class="bleed photo"><img src="assets/photos/3.webp" alt="Participantes en una sesión de Ai Labs" style="object-position: 70% 40%" /></div>
+    <div class="top"><img class="logo" src="assets/ailabs-light.svg" alt="Ai Labs" /><span class="meta" style="color:var(--snow); text-shadow:0 1px 12px rgba(0,0,0,.6)">Experiencia</span></div>
+    <div class="content">
+      <div class="proof">
+        <div class="eyebrow">Experiencia formando</div>
+        <div class="count a"><span data-count="60">60</span><sup>+</sup></div>
+        <p class="lead a">eventos de IA desde 2025, en San Salvador y Guatemala.</p>
+        <div class="amb">
+          <div class="label a">Embajadores de</div>
+          <div class="amb-row">
+            <span class="a">SpaceXAI</span><span class="a">OpenAI</span><span class="a">Codex</span><span class="a">Mistral</span><span class="a">ElevenLabs</span><span class="a">Notion</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>Formación de primera mano y acceso temprano a lo que viene.</span><span class="pg"></span></div>
+  </div></section>
+
+  <!-- 05 Formatos -->
+  <section class="frame"><div class="slide light">
+    <div class="top"><img class="logo" src="assets/ailabs-dark.svg" alt="Ai Labs" /><span class="meta">Formatos</span></div>
+    <div class="content">
+      <div class="eyebrow">Formatos</div>
+      <h2 class="split">Elegí la profundidad que <span class="accent">necesita tu equipo.</span></h2>
+      <div class="stairs">
+        <div class="col"><h3 class="a">Talleres públicos</h3><p class="a">Sesiones abiertas para cualquier profesional. La forma más fácil de conocernos.</p><div class="bar a fade"><span class="who">Individual</span><span class="dur">Abiertos</span></div></div>
+        <div class="col"><h3 class="a">Learning Day</h3><p class="a">Tu equipo, sus tareas reales. Se van con plantillas.</p><div class="bar a fade"><span class="who">Tu equipo</span><span class="dur">4 horas</span></div></div>
+        <div class="col"><h3 class="a">Build Day</h3><p class="a">Cohorte con otras empresas. Salís con un prototipo.</p><div class="bar a fade"><span class="who">Cohorte abierta</span><span class="dur">1 día</span></div></div>
+        <div class="col"><h3 class="a">Bootcamp</h3><p class="a">El prototipo queda funcionando e integrado.</p><div class="bar a fade"><span class="who">Tu equipo</span><span class="dur">2+ días</span></div></div>
+      </div>
+      <div class="stair-axis a fade"><span>Conocer</span><span>Practicar</span><span>Construir</span><span>Operar</span></div>
+    </div>
+    <div class="foot"><span></span><span class="pg"></span></div>
+  </div></section>
+
+  <!-- 06 Learning Day -->
+  <section class="frame"><div class="slide ld">
+    <canvas class="halftone" data-mode="chain" data-step="10" style="right:100px; top:530px; width:560px; height:200px; z-index:2; opacity:.35;"></canvas>
+    <div class="half-photo photo"><img src="assets/photos/14-purple-seats.webp" alt="Práctica guiada en una sesión de Ai Labs" style="object-position: 40% 50%" /></div>
+    <img class="logo logo-l" src="assets/ailabs-light.svg" alt="Ai Labs" />
+    <div class="top"><span class="meta">Formato · Learning Day</span></div>
+    <div class="content">
+      <span class="badge a">4 horas · con tu equipo</span>
+      <h2 class="split">Learning <span class="accent">Day</span></h2>
+      <p class="lead a">Una mañana con tu equipo, trabajando sobre sus tareas reales. Se van con plantillas que usan al día siguiente.</p>
+      <ul class="ticks">
+        <li class="a">Base común para todo el equipo</li>
+        <li class="a">Casos de su propio trabajo</li>
+        <li class="a">Plantillas listas para usar</li>
+        <li class="a">Criterios para revisar resultados</li>
+      </ul>
+    </div>
+    <div class="foot"><span>Ideal como primer paso</span><span class="pg"></span></div>
+  </div></section>
+
+  <!-- 07 Build Day + Bootcamp -->
+  <section class="frame"><div class="slide light">
+    <canvas class="halftone" data-mode="pair" data-tone="onlight" data-step="12" style="right:50px; top:150px; width:320px; height:215px;"></canvas>
+    <div class="top"><img class="logo" src="assets/ailabs-dark.svg" alt="Ai Labs" /><span class="meta">Formatos · Construir</span></div>
+    <div class="content">
+      <div class="eyebrow">Cuando quieren construir</div>
+      <h2 class="split">De la idea a un <span class="accent">prototipo que funciona.</span></h2>
+      <div class="duo">
+        <div class="dcard white a">
+          <div class="row"><span class="tag">Build Day · cohorte abierta</span><span class="dur">1 día</span></div>
+          <h3>Build Day</h3>
+          <p>Un día junto a otras empresas. Llegás con un proceso y te vas con algo tangible.</p>
+          <div class="flow"><div><b>Llegás con</b>Un proceso que te quita tiempo</div><span class="arr">→</span><div class="out"><b>Salís con</b>Prototipo + caso de negocio</div></div>
+        </div>
+        <div class="dcard dark a">
+          <div class="row"><span class="tag">Bootcamp · tu equipo</span><span class="dur">2+ días</span></div>
+          <h3>Bootcamp</h3>
+          <p>Varios días con tu equipo, hasta dejar el prototipo integrado a su operación.</p>
+          <div class="flow"><div><b>Resultado</b>Prototipo funcionando, integrado y documentado</div><span class="arr">→</span><div class="out"><b>Y además</b>Equipo listo para operarlo</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span></span><span class="pg"></span></div>
+  </div></section>
+
+  <!-- 08 Método -->
+  <section class="frame"><div class="slide purple">
+    <canvas class="halftone" data-mode="corner" data-tone="light" data-step="13" style="right:40px; top:150px; width:560px; height:400px;"></canvas>
+    <div class="top"><img class="logo" src="assets/ailabs-light.svg" alt="Ai Labs" style="filter:brightness(0) invert(1)" /><span class="meta">Cómo se arma</span></div>
+    <div class="content">
+      <div class="eyebrow">Cómo se arma cada capacitación</div>
+      <h2 class="split" style="max-width:1100px">Diseñada a partir de lo que tu equipo hace hoy.</h2>
+      <div class="steps">
+        <div class="step a"><div class="dot">1</div><h3>Entender</h3><p>Revisamos qué hace el equipo, con qué herramientas y dónde pierde tiempo.</p></div>
+        <div class="step a"><div class="dot">2</div><h3>Practicar</h3><p>Trabajamos sobre casos reales, con ejercicios que se pueden repetir al día siguiente.</p></div>
+        <div class="step a"><div class="dot">3</div><h3>Operar</h3><p>Dejamos criterios de revisión y documentación para que la mejora se sostenga.</p></div>
+      </div>
+    </div>
+    <div class="foot"><span>ailabs.sv</span><span class="pg"></span></div>
+  </div></section>
+
+  <!-- 09 Para quién -->
+  <section class="frame"><div class="slide light">
+    <canvas class="halftone" data-mode="chain" data-tone="onlight" data-step="13" style="right:40px; top:175px; width:460px; height:260px;"></canvas>
+    <div class="top"><img class="logo" src="assets/ailabs-dark.svg" alt="Ai Labs" /><span class="meta">Para quién es</span></div>
+    <div class="content">
+      <div class="eyebrow">Para quién es</div>
+      <h2 class="split">Pensada para equipos de <span class="accent">negocio.</span></h2>
+      <div class="who">
+        <div class="wbox yes a"><h4>Es para</h4><ul>
+          <li>Gerentes y equipos comerciales que quieren usar IA en su trabajo con criterio.</li>
+          <li>Equipos de operaciones y administración que necesitan una base común.</li>
+          <li>Direcciones que quieren decidir con información antes de invertir en IA.</li>
+        </ul></div>
+        <div class="wbox no a"><h4>No es para</h4><ul>
+          <li>Quien busca un curso de programación o de investigación en IA.</li>
+          <li>Quien busca un certificado sin práctica sobre su propio trabajo.</li>
+        </ul></div>
+      </div>
+    </div>
+    <div class="foot"><span>ailabs.sv</span><span class="pg"></span></div>
+  </div></section>
+
+  <!-- 10 Qué se llevan -->
+  <section class="frame"><div class="slide">
+    <canvas class="halftone" data-mode="pair" data-step="12" style="right:10px; top:140px; width:300px; height:220px;"></canvas>
+    <div class="top"><img class="logo" src="assets/ailabs-light.svg" alt="Ai Labs" /><span class="meta">Resultados</span></div>
+    <div class="content">
+      <div class="eyebrow">Qué se lleva tu equipo</div>
+      <h2 class="split">No solo conocimiento: <span class="accent">cosas que se usan.</span></h2>
+      <div class="tiles">
+        <div class="tile a"><div class="fm"><span>Learning Day</span></div><h3>Plantillas</h3><p>Listas para usar al día siguiente en sus tareas.</p></div>
+        <div class="tile a"><div class="fm"><span>Todos</span></div><h3>Criterios de revisión</h3><p>Cuándo usar IA, cómo validar el resultado y qué no delegar.</p></div>
+        <div class="tile a"><div class="fm"><span>Todos</span></div><h3>Una base común</h3><p>Todo el equipo habla el mismo idioma sobre IA.</p></div>
+        <div class="tile a"><div class="fm"><span>Build Day</span></div><h3>Caso de negocio</h3><p>Para decidir con información si vale la pena invertir.</p></div>
+        <div class="tile a"><div class="fm"><span>Build Day</span><span>Bootcamp</span></div><h3>Prototipo</h3><p>Construido sobre un proceso real de la empresa.</p></div>
+        <div class="tile hl a"><div class="fm"><span>Bootcamp</span></div><h3>Algo funcionando</h3><p>Integrado, documentado y con el equipo listo para operarlo.</p></div>
+      </div>
+    </div>
+    <div class="foot"><span>ailabs.sv</span><span class="pg"></span></div>
+  </div></section>
+
+  <!-- 11 FAQ -->
+  <section class="frame"><div class="slide light">
+    <canvas class="halftone" data-mode="chain" data-tone="onlight" data-step="14" style="right:70px; top:170px; width:720px; height:300px;"></canvas>
+    <div class="top"><img class="logo" src="assets/ailabs-dark.svg" alt="Ai Labs" /><span class="meta">Preguntas frecuentes</span></div>
+    <div class="content">
+      <div class="eyebrow">Lo que suelen preguntarnos</div>
+      <h2 class="split">Preguntas frecuentes.</h2>
+      <div class="faq">
+        <div class="q a"><h3>¿Necesitan saber programar?</h3><p>No. La formación está pensada para perfiles de negocio, con lenguaje claro.</p></div>
+        <div class="q a"><h3>¿Sirve si el equipo no es técnico?</h3><p>Sí. La mayoría de los equipos con los que trabajamos son de ventas, operaciones y administración.</p></div>
+        <div class="q a"><h3>¿Cuánto cuesta?</h3><p>Depende del formato. Lo cotizamos después de una llamada de 30 minutos.</p></div>
+        <div class="q a"><h3>¿Es genérica o a medida?</h3><p>A medida: trabajamos sobre las tareas y herramientas reales del equipo.</p></div>
+        <div class="q a"><h3>¿Puede venir alguien por su cuenta?</h3><p>Sí, a los talleres públicos. Los avisamos en Eventos y por WhatsApp.</p></div>
+        <div class="q a"><h3>¿Trabajan fuera de San Salvador?</h3><p>Sí. Hemos hecho eventos en San Salvador y Guatemala, y trabajamos con empresas de toda la región.</p></div>
+      </div>
+    </div>
+    <div class="foot"><span>ailabs.sv</span><span class="pg"></span></div>
+  </div></section>
+
+  <!-- 12 CTA -->
+  <section class="frame"><div class="slide cta">
+    <canvas class="halftone" data-mode="cta" data-step="15" style="right:20px; top:150px; width:620px; height:800px;"></canvas>
+    <div class="top"><img class="logo" src="assets/ailabs-light.svg" alt="Ai Labs" /><span class="tagline">get curious</span></div>
+    <div class="content">
+      <div class="eyebrow">Siguiente paso</div>
+      <h2 class="split">¿Querés preparar a <span class="accent">tu equipo?</span></h2>
+      <p class="lead a">Contanos qué hace tu equipo y qué quiere mejorar. Lo vemos en una llamada de 30 minutos.</p>
+      <a class="btn a" href="https://www.ailabs.sv/agendar?tema=capacitacion" target="_blank" rel="noopener">Agendá una llamada <span>→</span></a>
+      <p class="note a">Y si después el equipo detecta un proceso para automatizar, lo implementamos con ustedes.</p>
+      <div class="foot" style="margin-top:auto; padding-top:36px">
+        <div class="contact">
+          <div class="a">Agenda<b>ailabs.sv/agendar</b></div>
+          <div class="a">LinkedIn<b>Ai Labs</b></div>
+          <div class="a">Instagram · TikTok · X<b>@ailabs_sv</b></div>
+        </div>
+      </div>
+    </div>
+  </div></section>
+
+</main>
+
+<div class="ui"><div class="progress"><i id="bar"></i></div></div>
+<div class="hud"><button id="prev" aria-label="Anterior">←</button><span class="num" id="num"></span><button id="next" aria-label="Siguiente">→</button><button id="fs" aria-label="Pantalla completa">⤢</button></div>
+<div class="hint" id="hint">← → o clic para avanzar · F pantalla completa</div>
+
+<script>
+  const PRINT = !!window.__PRINT__;
+  if (PRINT) document.body.classList.add('print');
+
+  /* ---------- Halftone (brand dot motif) ---------- */
+  const LAYOUTS = {
+    cover: [[.62, .1, .2], [.3, .4, .17], [.66, .47, .11], [.8, .7, .15], [.22, .86, .19]],
+    cta:   [[.55, .08, .19], [.25, .38, .15], [.7, .52, .13], [.35, .84, .2]],
+    corner:[[.62, .3, .22], [.3, .62, .14], [.8, .78, .12]],
+    pair:  [[.36, .42, .26], [.78, .72, .15]],
+    chain: [[.14, .55, .11], [.42, .38, .15], [.72, .62, .1], [.9, .3, .07]],
+  };
+  const segDist = (px, py, a, b) => {
+    const vx = b.x - a.x, vy = b.y - a.y, t = Math.max(0, Math.min(1, ((px - a.x) * vx + (py - a.y) * vy) / (vx * vx + vy * vy)));
+    return Math.hypot(px - a.x - t * vx, py - a.y - t * vy);
+  };
+  function buildDots(c) {
+    const w = c.clientWidth || parseFloat(c.style.width), h = c.clientHeight || parseFloat(c.style.height);
+    c.width = w * 2; c.height = h * 2;
+    const light = c.dataset.tone === 'light', onlight = c.dataset.tone === 'onlight', step = +c.dataset.step || 15;
+    const blobs = LAYOUTS[c.dataset.mode].map(([x, y, r]) => ({ x: x * w, y: y * h, r: r * w }));
+    const dots = [];
+    for (let y = step / 2; y < h; y += step) for (let x = step / 2; x < w; x += step) {
+      let best = Infinity, bb;
+      for (const b of blobs) { const d = Math.hypot(x - b.x, y - b.y) / b.r; if (d < best) { best = d; bb = b; } }
+      let bridge = Infinity;
+      for (let i = 0; i < blobs.length - 1; i++) bridge = Math.min(bridge, segDist(x, y, blobs[i], blobs[i + 1]) / (step * 2.2));
+      let size, col;
+      if (best < 1) {
+        const shade = ((x - bb.x) + (y - bb.y) * 0.4) / bb.r;
+        size = step * 0.44 * (best > 0.85 ? 0.8 : 1);
+        col = light ? (shade < 0.05 ? 'rgba(245,244,248,.95)' : 'rgba(245,244,248,.5)') : (shade < -0.05 ? '#f5f4f8' : shade < 0.3 ? '#a99bff' : '#6a55ff');
+        if (onlight) col = shade < -0.05 ? '#c9c0ff' : shade < 0.3 ? '#8f7dfd' : '#614afc';
+        if (shade > 0.3) size *= 0.82;
+      } else if (best < 1.35) { size = step * 0.3 * (1 - (best - 1) / 0.35) + 0.6; col = light ? 'rgba(245,244,248,.4)' : onlight ? '#a99bff' : '#5b45f5'; }
+      else if (bridge < 1) { size = step * 0.22 * (1 - bridge) + 0.8; col = light ? 'rgba(245,244,248,.45)' : onlight ? '#a99bff' : '#5b45f5'; }
+      else continue;
+      dots.push({ x, y, size, col, delay: (y / h) * 900 + (x / w) * 300 + Math.random() * 250 });
+    }
+    c._dots = dots; c._ctx = c.getContext('2d'); c._ctx.setTransform(2, 0, 0, 2, 0, 0); c._w = w; c._h = h;
+  }
+  const easeBack = t => { const s = 1.6; t -= 1; return t * t * ((s + 1) * t + s) + 1; };
+  function paint(c, t, now) {
+    const ctx = c._ctx; ctx.clearRect(0, 0, c._w, c._h);
+    for (const d of c._dots) {
+      let k = t == null ? 1 : Math.max(0, Math.min(1, (t - d.delay) / 650));
+      if (k <= 0) continue;
+      k = t == null ? 1 : easeBack(k);
+      const breathe = now ? 1 + 0.09 * Math.sin(now / 1100 + d.x * 0.018 + d.y * 0.012) : 1;
+      ctx.fillStyle = d.col; ctx.beginPath(); ctx.arc(d.x, d.y, Math.max(0, d.size * k * breathe), 0, 6.2832); ctx.fill();
+    }
+  }
+
+  /* ---------- Entrance setup ---------- */
+  const frames = [...document.querySelectorAll('.frame')];
+  frames.forEach((f, i) => {
+    const pg = f.querySelector('.pg'); if (pg) pg.textContent = String(i + 1).padStart(2, '0');
+    f.querySelectorAll('.split').forEach(el => {
+      const walk = node => [...node.childNodes].forEach(n => {
+        if (n.nodeType === 3) {
+          const frag = document.createDocumentFragment();
+          n.textContent.split(/(\s+)/).forEach(part => {
+            if (!part) return;
+            if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(' ')); return; }
+            const w = document.createElement('span'); w.className = 'w';
+            const s = document.createElement('span'); s.textContent = part; w.appendChild(s); frag.appendChild(w);
+          });
+          n.replaceWith(frag);
+        } else if (n.nodeType === 1) walk(n);
+      });
+      walk(el);
+    });
+    f.querySelectorAll('.top, .eyebrow, .chip, .key, .prob, .foot').forEach(el => el.classList.add('a'));
+    let d = 120;
+    f.querySelectorAll('.a, .w > span').forEach(el => {
+      el.style.setProperty('--d', d);
+      d += el.matches('.w > span') ? 45 : el.matches('.top, .foot') ? 0 : 90;
+    });
+    f.querySelectorAll('.top, .foot').forEach(el => el.style.setProperty('--d', 0));
+  });
+
+  /* ---------- Navigation ---------- */
+  let idx = 0, actAt = 0;
+  const bar = document.getElementById('bar'), num = document.getElementById('num');
+  function fit() { document.documentElement.style.setProperty('--s', Math.min(innerWidth / 1920, innerHeight / 1080)); }
+  function countUp(f) {
+    f.querySelectorAll('[data-count]').forEach(el => {
+      const to = +el.dataset.count, t0 = performance.now() + 450;
+      const tick = now => { const k = Math.max(0, Math.min(1, (now - t0) / 1600)); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 4))); if (k < 1 && frames[idx] === f) requestAnimationFrame(tick); };
+      el.textContent = 0; requestAnimationFrame(tick);
+    });
+  }
+  function go(i, instant) {
+    const n = Math.max(0, Math.min(frames.length - 1, i));
+    if (n === idx && !instant) return;
+    idx = n;
+    frames.forEach((f, j) => { f.classList.toggle('active', j === idx); f.classList.toggle('past', j < idx); f.classList.toggle('future', j > idx); });
+    bar.style.width = ((idx + 1) / frames.length * 100) + '%';
+    num.textContent = String(idx + 1).padStart(2, '0') + ' / ' + String(frames.length).padStart(2, '0');
+    history.replaceState(null, '', '#' + (idx + 1));
+    actAt = performance.now();
+    countUp(frames[idx]);
+  }
+  const next = () => go(idx + 1), prev = () => go(idx - 1);
+  function toggleFs() { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.(); }
+
+  if (!PRINT) {
+    fit(); addEventListener('resize', fit);
+    addEventListener('keydown', e => {
+      if (['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); next(); }
+      else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); prev(); }
+      else if (e.key === 'Home') go(0); else if (e.key === 'End') go(frames.length - 1);
+      else if (e.key.toLowerCase() === 'f') toggleFs();
+    });
+    document.getElementById('stage').addEventListener('click', e => {
+      if (e.target.closest('a')) return;
+      e.clientX < innerWidth * 0.25 ? prev() : next();
+    });
+    document.getElementById('prev').onclick = prev;
+    document.getElementById('next').onclick = next;
+    document.getElementById('fs').onclick = toggleFs;
+    let tx = null;
+    addEventListener('touchstart', e => tx = e.touches[0].clientX, { passive: true });
+    addEventListener('touchend', e => { if (tx == null) return; const dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 50) dx < 0 ? next() : prev(); tx = null; });
+    let mt; addEventListener('mousemove', () => { document.body.classList.add('mouse'); clearTimeout(mt); mt = setTimeout(() => document.body.classList.remove('mouse'), 2200); });
+    setTimeout(() => document.getElementById('hint').classList.add('gone'), 4500);
+  }
+
+  document.fonts.ready.then(() => {
+    const canvases = [...document.querySelectorAll('canvas.halftone')];
+    canvases.forEach(buildDots);
+    if (PRINT) { canvases.forEach(c => paint(c)); return; }
+    go(Math.max(0, (parseInt(location.hash.slice(1)) || 1) - 1), true);
+    const loop = now => {
+      canvases.forEach(c => { if (c.closest('.frame') === frames[idx]) paint(c, now - actAt - 250, now); });
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  });
+  addEventListener('beforeprint', () => { document.body.classList.add('print'); document.querySelectorAll('canvas.halftone').forEach(c => paint(c)); });
+  addEventListener('afterprint', () => { if (!PRINT) document.body.classList.remove('print'); });
+</script>
+</body>
+</html>
