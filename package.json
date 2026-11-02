@@ -1,0 +1,14 @@
+{
+  "name": "ailabs-capacitacion-deck",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Animated sales deck for Ai Labs AI training programs",
+  "type": "module",
+  "scripts": {
+    "pdf": "node scripts/render.mjs",
+    "screenshots": "node scripts/render.mjs --screenshots"
+  },
+  "devDependencies": {
+    "playwright": "1.49.0"
+  }
+}
